@@ -49,10 +49,17 @@ abstract class AdminPage {
             true
         );
 
+        $nonce = wp_create_nonce('wp_rest');
         wp_localize_script('org-manager-admin', 'orgManagerData', [
             'apiUrl' => rest_url('org-manager/v1'),
-            'nonce' => wp_create_nonce('wp_rest')
+            'nonce' => $nonce,
+            'debug' => WP_DEBUG
         ]);
+
+        if (WP_DEBUG) {
+            error_log('REST API URL: ' . rest_url('org-manager/v1'));
+            error_log('Nonce: ' . $nonce);
+        }
     }
 
     public function render(): void {
