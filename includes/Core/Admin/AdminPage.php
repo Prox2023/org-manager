@@ -2,6 +2,8 @@
 
 namespace OrgManager\Core\Admin;
 
+use OrgManager\Core\BuildInfo;
+
 abstract class AdminPage {
     protected string $page_title;
     protected string $menu_title;
@@ -43,14 +45,21 @@ abstract class AdminPage {
             'org-manager-admin',
             org_manager_url . 'admin/js/dist/' . $main_file,
             ['wp-element'],
-            '1.0.0',
+            BuildInfo::get_instance()->get_build(),
             true
         );
 
+        $nonce = wp_create_nonce('wp_rest');
         wp_localize_script('org-manager-admin', 'orgManagerData', [
             'apiUrl' => rest_url('org-manager/v1'),
-            'nonce' => wp_create_nonce('wp_rest')
+            'nonce' => $nonce,
+            'debug' => WP_DEBUG
         ]);
+
+        if (WP_DEBUG) {
+            error_log('REST API URL: ' . rest_url('org-manager/v1'));
+            error_log('Nonce: ' . $nonce);
+        }
     }
 
     public function render(): void {

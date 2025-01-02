@@ -2,7 +2,7 @@
 
 namespace OrgManager\Epics;
 
-use OrgManager\Features\DiscordAuthFeature;
+use OrgManager\Features\Discord\DiscordAuthFeature;
 use OrgManager\Features\Epic;
 
 class AdministrationEpic extends Epic {

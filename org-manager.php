@@ -22,6 +22,15 @@ require_once org_manager_path . 'vendor/autoload.php';
 
 use OrgManager\Core\Main;
 
+if (WP_DEBUG) {
+    add_filter('rest_request_before_callbacks', function($response, $handler, $request) {
+        error_log('REST Request: ' . $request->get_route());
+        error_log('REST Method: ' . $request->get_method());
+        error_log('REST Params: ' . print_r($request->get_params(), true));
+        return $response;
+    }, 10, 3);
+}
+
 /**
  * Run the Organization Manager plugin
  */

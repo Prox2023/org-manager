@@ -4,6 +4,9 @@ export interface Theme {
     secondary: string;
     background: string;
     text: string;
+    border: string;
+    surface: string;
+    hover: string;
   };
   spacing: {
     small: string;
@@ -12,16 +15,19 @@ export interface Theme {
   };
 }
 
-export const defaultTheme: Theme = {
+export const lightTheme: Theme = {
   colors: {
-    primary: '#007cba',
-    secondary: '#455a64',
-    background: '#ffffff',
+    primary: '#2271b1',
+    secondary: '#135e96',
+    background: '#f0f0f1',
     text: '#1e1e1e',
+    border: '#c3c4c7',
+    surface: '#ffffff',
+    hover: '#f0f0f1'
   },
   spacing: {
     small: '8px',
     medium: '16px',
-    large: '24px',
-  },
+    large: '24px'
+  }
 }; 

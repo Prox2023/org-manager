@@ -16,6 +16,7 @@ yarn-error.log
 # Build outputs
 admin/js/dist/
 admin/css/dist/
+build.json
 
 # WordPress
 .wp-env.override.json
