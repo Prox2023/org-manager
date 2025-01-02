@@ -1,0 +1,30 @@
+your-plugin/
+├── admin/
+│   ├── js/
+│   │   ├── src/
+│   │   │   ├── components/
+│   │   │   ├── hooks/
+│   │   │   ├── queries/
+│   │   │   ├── theme/
+│   │   │   ├── App.tsx
+│   │   │   └── index.tsx
+│   │   └── dist/
+│   └── css/
+│       └── dist/
+├── includes/
+│   ├── Core/
+│   │   ├── Admin.php
+│   │   ├── Api.php
+│   │   └── Main.php
+│   ├── Features/
+│   │   ├── Feature.php
+│   │   ├── Epic.php
+│   │   ├── Interfaces/
+│   │   │   ├── HasSettings.php
+│   │   │   └── HasAdminPage.php
+│   │   └── Discord/
+│   │       └── DiscordAuthFeature.php
+│   └── Epics/
+│       └── AdministrationEpic.php
+├── composer.json
+└── org-manager.php 
