@@ -2,6 +2,8 @@
 
 namespace OrgManager\Core\Admin;
 
+use OrgManager\Core\BuildInfo;
+
 abstract class AdminPage {
     protected string $page_title;
     protected string $menu_title;
@@ -43,7 +45,7 @@ abstract class AdminPage {
             'org-manager-admin',
             org_manager_url . 'admin/js/dist/' . $main_file,
             ['wp-element'],
-            '1.0.0',
+            BuildInfo::get_instance()->get_build(),
             true
         );
 
