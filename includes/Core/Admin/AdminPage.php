@@ -58,17 +58,34 @@ abstract class AdminPage {
      * @return void
      */
     public function enqueue_assets(string $hook): void {
+        if (WP_DEBUG) {
+            error_log('Current admin page hook: ' . $hook);
+            error_log('Expected hook: toplevel_page_' . $this->menu_slug);
+        }
+
         if ("toplevel_page_{$this->menu_slug}" !== $hook) {
             return;
+        }
+
+        if (WP_DEBUG) {
+            error_log('Loading admin assets');
         }
 
         wp_enqueue_script('wp-element');
         remove_action('admin_print_scripts', 'print_emoji_detection_script');
 
         $asset_file = org_manager_path . 'admin/js/dist/manifest.json';
+        if (WP_DEBUG) {
+            error_log('Asset file path: ' . $asset_file);
+            error_log('Asset file exists: ' . (file_exists($asset_file) ? 'yes' : 'no'));
+        }
+
         if (file_exists($asset_file)) {
             $manifest = json_decode(file_get_contents($asset_file), true);
             $main_file = $manifest['src/index.tsx']['file'] ?? 'main.js';
+            if (WP_DEBUG) {
+                error_log('Main file from manifest: ' . $main_file);
+            }
         } else {
             $main_file = 'main.js';
         }
@@ -87,11 +104,6 @@ abstract class AdminPage {
             'nonce' => $nonce,
             'debug' => WP_DEBUG
         ]);
-
-        if (WP_DEBUG) {
-            error_log('REST API URL: ' . rest_url('org-manager/v1'));
-            error_log('Nonce: ' . $nonce);
-        }
     }
 
     /**

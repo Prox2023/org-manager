@@ -79,6 +79,20 @@ class Main {
      * @return void
      */
     public function init_hooks(): void {
+        // Register the main plugin page first
+        add_action('admin_menu', function() {
+            add_menu_page(
+                'Organization Manager',
+                'Organization Manager',
+                'manage_options',
+                'org-manager',
+                [$this->features_page, 'render'],
+                'dashicons-admin-generic',
+                30
+            );
+        });
+
+        // Then register feature pages
         add_action('admin_menu', [$this->features_page, 'register']);
     }
 } 

@@ -41,71 +41,10 @@ class DiscordAuthFeature extends Feature implements HasSettings, HasAdminPage {
     /** @var array<SettingField> Collection of setting fields */
     private array $fields;
 
-    /**
-     * Constructor
-     * 
-     * Initializes the feature by setting up the settings fields.
-     */
     public function __construct() {
         $this->init_fields();
     }
 
-    /**
-     * Initialize Setting Fields
-     * 
-     * Sets up the field definitions for the Discord settings form.
-     * 
-     * @return void
-     */
-    private function init_fields(): void {
-        $this->fields = [
-            new SettingField(
-                Field::TYPE_TEXT,
-                'client_id',
-                'Client ID',
-                'Your Discord application client ID'
-            ),
-            new SettingField(
-                Field::TYPE_PASSWORD,
-                'client_secret',
-                'Client Secret',
-                'Your Discord application client secret'
-            ),
-            new SettingField(
-                Field::TYPE_URL,
-                'redirect_uri',
-                'Redirect URI',
-                'The URL where users will be redirected after Discord authentication',
-                get_rest_url(null, 'org-manager/v1/discord/auth')
-            ),
-            new SettingField(
-                Field::TYPE_SWITCH,
-                'registration_enabled',
-                'Enable Registration',
-                'Allow new users to register through Discord',
-                false
-            )
-        ];
-    }
-
-    /**
-     * Get Field Definitions
-     * 
-     * Returns an array of field definitions in a format suitable for the frontend.
-     * 
-     * @return array<mixed> Array of field definitions
-     */
-    public function get_fields(): array {
-        return array_map(fn($field) => $field->to_array(), $this->fields);
-    }
-
-    /**
-     * Initialize Feature
-     * 
-     * Sets up WordPress hooks and initializes the Discord client.
-     * 
-     * @return void
-     */
     public function initialize(): void {
         if (WP_DEBUG) {
             error_log('Initializing DiscordAuthFeature');
@@ -116,149 +55,86 @@ class DiscordAuthFeature extends Feature implements HasSettings, HasAdminPage {
         $this->register_rest_routes();
     }
 
-    /**
-     * Register WordPress Hooks
-     * 
-     * Sets up WordPress admin hooks for settings registration.
-     * 
-     * @return void
-     */
     public function register_hooks(): void {
-        add_action('admin_init', [$this, 'register_settings']);
+        if ($this->is_enabled()) {
+            add_action('init', [$this, 'register_settings']);
+            add_action('admin_menu', [$this, 'register_admin_page']);
+        }
     }
 
-    /**
-     * Register Settings
-     * 
-     * Registers WordPress settings and setting fields.
-     * 
-     * @return void
-     */
+    public function register_rest_routes(): void {
+        add_action('rest_api_init', function () {
+            register_rest_route('org-manager/v1', '/discord/settings', [
+                'methods' => 'GET',
+                'callback' => [$this, 'handle_get_settings'],
+                'permission_callback' => [$this, 'check_permission']
+            ]);
+
+            register_rest_route('org-manager/v1', '/discord/settings', [
+                'methods' => 'POST',
+                'callback' => [$this, 'handle_update_settings'],
+                'permission_callback' => [$this, 'check_permission']
+            ]);
+        });
+    }
+
+    public function get_settings(): array {
+        return get_option(self::OPTION_NAME, []);
+    }
+
+    public function update_settings(array $settings): bool {
+        return update_option(self::OPTION_NAME, $settings);
+    }
+
     public function register_settings(): void {
-        register_setting(
-            self::OPTION_GROUP,
-            self::OPTION_NAME,
-            [
-                'type' => 'object',
-                'description' => 'Discord authentication settings',
-                'sanitize_callback' => [$this, 'sanitize_settings'],
-                'default' => [
-                    'client_id' => '',
-                    'client_secret' => '',
-                    'redirect_uri' => '',
-                    'allowed_roles' => [],
-                    'registration_enabled' => false,
-                ]
-            ]
+        register_setting(self::OPTION_GROUP, self::OPTION_NAME);
+    }
+
+    public function register_admin_page(): void {
+        add_submenu_page(
+            'org-manager',
+            $this->name,
+            $this->name,
+            $this->get_capability(),
+            'org-manager-' . $this->id,
+            [$this, 'render_admin_page']
         );
     }
 
-    /**
-     * Handle Settings Request
-     * 
-     * Routes the request to the appropriate handler based on HTTP method.
-     * 
-     * @param \WP_REST_Request $request The REST request object
-     * @return \WP_REST_Response The REST response
-     */
-    public function handle_settings_request(\WP_REST_Request $request): \WP_REST_Response {
-        if ($request->get_method() === 'POST') {
-            return $this->handle_update_settings($request);
-        }
-        return $this->handle_get_settings($request);
+    public function get_menu_position(): int {
+        return 10;
     }
 
-    /**
-     * Get Settings
-     * 
-     * Retrieves and returns the current settings with field definitions.
-     * 
-     * @param \WP_REST_Request $request The REST request object
-     * @return \WP_REST_Response The REST response containing settings and fields
-     */
-    public function handle_get_settings(\WP_REST_Request $request): \WP_REST_Response {
-        if (WP_DEBUG) {
-            error_log('Handling GET settings request');
+    public function get_capability(): string {
+        return 'manage_options';
+    }
+
+    public function render_admin_page(): void {
+        echo '<div class="wrap">';
+        echo '<h1>' . esc_html($this->name) . '</h1>';
+        echo '<div id="org-manager-root">
+            <div style="display: flex; justify-content: center; padding: 20px;">
+                Loading...
+            </div>
+        </div>';
+        echo '</div>';
+    }
+
+    private function check_permission(): bool {
+        return current_user_can('manage_options');
+    }
+
+    public function init_discord_client(): void {
+        if (!$this->is_enabled()) {
+            return;
         }
+
         $settings = $this->get_settings();
-        $fields = $this->get_fields();
-        
-        if (WP_DEBUG) {
-            error_log('Current settings: ' . print_r($settings, true));
-            error_log('Fields definition: ' . print_r($fields, true));
+        if (empty($settings['client_id']) || empty($settings['client_secret'])) {
+            return;
         }
-        
-        return new \WP_REST_Response([
-            'client_id' => $settings['client_id'] ?? '',
-            'client_secret' => $settings['client_secret'] ?? '',
-            'redirect_uri' => $settings['redirect_uri'] ?? '',
-            'registration_enabled' => $settings['registration_enabled'] ?? false,
-            'allowed_roles' => $settings['allowed_roles'] ?? [],
-            'fields' => $fields
-        ], 200);
     }
 
-    /**
-     * Update Settings
-     * 
-     * Handles the settings update request and returns the updated settings.
-     * 
-     * @param \WP_REST_Request $request The REST request object
-     * @return \WP_REST_Response The REST response containing updated settings
-     */
-    public function handle_update_settings(\WP_REST_Request $request): \WP_REST_Response {
-        if (WP_DEBUG) {
-            error_log('Handling POST settings request');
-            error_log('Request params: ' . print_r($request->get_params(), true));
-        }
-        
-        $params = $request->get_params();
-        
-        $settings = [
-            'client_id' => sanitize_text_field($params['client_id'] ?? ''),
-            'client_secret' => sanitize_text_field($params['client_secret'] ?? ''),
-            'redirect_uri' => sanitize_text_field($params['redirect_uri'] ?? ''),
-            'registration_enabled' => (bool) ($params['registration_enabled'] ?? false),
-            'allowed_roles' => []
-        ];
-
-        if (WP_DEBUG) {
-            error_log('Attempting to save settings: ' . print_r($settings, true));
-        }
-
-        $updated = $this->update_settings($settings);
-
-        if (!$updated) {
-            if (WP_DEBUG) {
-                error_log('Failed to update settings');
-            }
-            return new \WP_REST_Response([
-                'message' => 'Failed to update settings'
-            ], 500);
-        }
-
-        $fields = $this->get_fields();
-        
-        return new \WP_REST_Response([
-            'message' => 'Settings updated successfully',
-            'client_id' => $settings['client_id'],
-            'client_secret' => $settings['client_secret'],
-            'redirect_uri' => $settings['redirect_uri'],
-            'registration_enabled' => $settings['registration_enabled'],
-            'allowed_roles' => $settings['allowed_roles'],
-            'fields' => $fields
-        ], 200);
-    }
-
-    /**
-     * Synchronize Discord Roles
-     * 
-     * Syncs Discord roles with WordPress user meta when a user logs in.
-     * 
-     * @param string $user_login The user's login name
-     * @param \WP_User $user WordPress user object
-     * @return void
-     */
     public function sync_discord_roles(string $user_login, \WP_User $user): void {
         if (WP_DEBUG) {
             error_log('Syncing Discord roles for user: ' . $user_login);
@@ -305,5 +181,61 @@ class DiscordAuthFeature extends Feature implements HasSettings, HasAdminPage {
                 error_log('Error syncing Discord roles: ' . $e->getMessage());
             }
         }
+    }
+
+    public function check_discord_organization($user, $username, $password): \WP_User|\WP_Error {
+        if (!$user instanceof \WP_User) {
+            return $user;
+        }
+
+        $settings = $this->get_settings();
+        if (empty($settings['client_id']) || empty($settings['client_secret'])) {
+            return $user;
+        }
+
+        $discord_user_id = get_user_meta($user->ID, 'discord_user_id', true);
+        if (empty($discord_user_id)) {
+            return new \WP_Error(
+                'discord_auth_required',
+                'Discord authentication is required.'
+            );
+        }
+
+        return $user;
+    }
+
+    private function init_fields(): void {
+        $this->fields = [
+            new SettingField(
+                Field::TYPE_TEXT,
+                'client_id',
+                'Client ID',
+                'Your Discord application client ID'
+            ),
+            new SettingField(
+                Field::TYPE_PASSWORD,
+                'client_secret',
+                'Client Secret',
+                'Your Discord application client secret'
+            ),
+            new SettingField(
+                Field::TYPE_URL,
+                'redirect_uri',
+                'Redirect URI',
+                'The URL where users will be redirected after Discord authentication',
+                get_rest_url(null, 'org-manager/v1/discord/auth')
+            ),
+            new SettingField(
+                Field::TYPE_SWITCH,
+                'registration_enabled',
+                'Enable Registration',
+                'Allow new users to register through Discord',
+                false
+            )
+        ];
+    }
+
+    public function get_fields(): array {
+        return array_map(fn($field) => $field->to_array(), $this->fields);
     }
 }

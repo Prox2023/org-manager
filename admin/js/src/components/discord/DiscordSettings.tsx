@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useQuery, useMutation } from '@tanstack/react-query';
+import { useQuery, useMutation, UseMutationResult } from '@tanstack/react-query';
 import { useTheme } from '../../theme/ThemeProvider';
 import { Card } from '../ui/Card';
 import { Button } from '../ui/Button';
@@ -39,7 +39,7 @@ export const DiscordSettings: React.FC = () => {
         }
     });
 
-    const { mutate: saveSettings, isLoading: isSaving } = useMutation({
+    const { mutate: saveSettings, isPending: isSaving } = useMutation({
         mutationFn: async (formData: Record<string, any>) => {
             console.log('Saving settings:', formData);
             const response = await fetch(`${window.orgManagerData.apiUrl}/discord/settings`, {
