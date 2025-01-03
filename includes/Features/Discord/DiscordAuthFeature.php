@@ -21,7 +21,7 @@ class DiscordAuthFeature extends Feature implements HasSettings, HasAdminPage {
             error_log('Initializing DiscordAuthFeature');
         }
         add_action('init', [$this, 'init_discord_client']);
-        add_action('wp_login', [$this, 'sync_discord_roles']);
+        add_action('wp_login', [$this, 'sync_discord_roles'], 10, 2);
         add_filter('authenticate', [$this, 'check_discord_organization'], 30, 3);
         $this->register_rest_routes();
     }
@@ -200,7 +200,7 @@ class DiscordAuthFeature extends Feature implements HasSettings, HasAdminPage {
         $settings = $this->get_settings();
         $field = $args['field'];
         $value = $settings[$field] ?? '';
-        $type = isset($args['type']) ? $args['type'] : 'text';
+        $type = $args['type'] ?? 'text';
         ?>
         <input
             type="<?php echo esc_attr($type); ?>"
@@ -218,7 +218,7 @@ class DiscordAuthFeature extends Feature implements HasSettings, HasAdminPage {
     public function render_checkbox_field(array $args): void {
         $settings = $this->get_settings();
         $field = $args['field'];
-        $checked = isset($settings[$field]) ? (bool) $settings[$field] : false;
+        $checked = isset( $settings[ $field ] ) && (bool) $settings[ $field ];
         ?>
         <input
             type="checkbox"
@@ -336,5 +336,64 @@ class DiscordAuthFeature extends Feature implements HasSettings, HasAdminPage {
             return $this->handle_update_settings($request);
         }
         return $this->handle_get_settings($request);
+    }
+
+    /**
+     * Synchronize WordPress user roles with Discord roles
+     * 
+     * @param string $user_login The user's login name
+     * @param \WP_User $user WP_User object
+     * @return void
+     */
+    public function sync_discord_roles(string $user_login, \WP_User $user): void {
+        if (WP_DEBUG) {
+            error_log('Syncing Discord roles for user: ' . $user_login);
+        }
+
+        $settings = $this->get_settings();
+        if (empty($settings['client_id']) || empty($settings['client_secret'])) {
+            if (WP_DEBUG) {
+                error_log('Discord settings not configured');
+            }
+            return;
+        }
+
+        // Get Discord user ID from user meta
+        $discord_user_id = get_user_meta($user->ID, 'discord_user_id', true);
+        if (empty($discord_user_id)) {
+            if (WP_DEBUG) {
+                error_log('No Discord ID found for user: ' . $user_login);
+            }
+            return;
+        }
+
+        try {
+            // Initialize Discord client and sync roles
+            $discord_client = new DiscordClient(
+                $settings['client_id'],
+                $settings['client_secret'],
+                ''  // We don't need guild_id for this
+            );
+
+            // Get user's Discord roles
+            $discord_roles = $discord_client->get_user_roles($discord_user_id);
+            if (empty($discord_roles)) {
+                if (WP_DEBUG) {
+                    error_log('No Discord roles found for user: ' . $user_login);
+                }
+                return;
+            }
+
+            // Update user meta with Discord roles
+            update_user_meta($user->ID, 'discord_roles', $discord_roles);
+
+            if (WP_DEBUG) {
+                error_log('Successfully synced Discord roles for user: ' . $user_login);
+            }
+        } catch (\Exception $e) {
+            if (WP_DEBUG) {
+                error_log('Error syncing Discord roles: ' . $e->getMessage());
+            }
+        }
     }
 }

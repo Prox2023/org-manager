@@ -80,4 +80,40 @@ class DiscordClient {
 
         return json_decode(wp_remote_retrieve_body($response), true);
     }
+
+    /**
+     * Get user's Discord roles
+     * 
+     * @param string $user_id Discord user ID
+     * @return array Array of role IDs
+     */
+    public function get_user_roles(string $user_id): array {
+        if (empty($this->access_token)) {
+            return [];
+        }
+
+        $response = wp_remote_get('https://discord.com/api/v10/users/@me/guilds', [
+            'headers' => [
+                'Authorization' => "Bearer {$this->access_token}"
+            ]
+        ]);
+
+        if (is_wp_error($response)) {
+            return [];
+        }
+
+        $guilds = json_decode(wp_remote_retrieve_body($response), true);
+        if (!is_array($guilds)) {
+            return [];
+        }
+
+        $roles = [];
+        foreach ($guilds as $guild) {
+            if (isset($guild['roles'])) {
+                $roles = array_merge($roles, $guild['roles']);
+            }
+        }
+
+        return array_unique($roles);
+    }
 } 
