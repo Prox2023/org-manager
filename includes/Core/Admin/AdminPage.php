@@ -4,13 +4,37 @@ namespace OrgManager\Core\Admin;
 
 use OrgManager\Core\BuildInfo;
 
+/**
+ * Admin Page Base Class
+ * 
+ * Base class for WordPress admin pages. Provides common functionality
+ * for registering and rendering admin pages.
+ * 
+ * @package OrgManager\Core\Admin
+ */
 abstract class AdminPage {
+    /** @var string Page title */
     protected string $page_title;
+
+    /** @var string Menu title */
     protected string $menu_title;
+
+    /** @var string Required capability to access page */
     protected string $capability;
+
+    /** @var string Menu slug */
     protected string $menu_slug;
+
+    /** @var int Menu position */
     protected int $position;
 
+    /**
+     * Register Admin Page
+     * 
+     * Registers the admin page with WordPress and sets up assets.
+     * 
+     * @return void
+     */
     public function register(): void {
         add_menu_page(
             $this->page_title,
@@ -25,6 +49,14 @@ abstract class AdminPage {
         add_action('admin_enqueue_scripts', [$this, 'enqueue_assets']);
     }
 
+    /**
+     * Enqueue Assets
+     * 
+     * Loads required scripts and styles for the admin page.
+     * 
+     * @param string $hook Current admin page hook
+     * @return void
+     */
     public function enqueue_assets(string $hook): void {
         if ("toplevel_page_{$this->menu_slug}" !== $hook) {
             return;
@@ -62,6 +94,13 @@ abstract class AdminPage {
         }
     }
 
+    /**
+     * Render Admin Page
+     * 
+     * Outputs the HTML for the admin page.
+     * 
+     * @return void
+     */
     public function render(): void {
         ?>
         <div class="wrap">

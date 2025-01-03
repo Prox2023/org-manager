@@ -6,6 +6,7 @@ import { Button } from '../ui/Button';
 import { Input } from '../ui/Input';
 import { Switch } from '../ui/Switch';
 import { Alert } from '../ui/Alert';
+import { DynamicForm } from '../form/DynamicForm';
 
 interface DiscordSettings {
     client_id: string;
@@ -13,6 +14,7 @@ interface DiscordSettings {
     redirect_uri: string;
     registration_enabled: boolean;
     allowed_roles: string[];
+    fields: any[];
 }
 
 export const DiscordSettings: React.FC = () => {
@@ -38,15 +40,15 @@ export const DiscordSettings: React.FC = () => {
     });
 
     const { mutate: saveSettings, isLoading: isSaving } = useMutation({
-        mutationFn: async (newSettings: DiscordSettings) => {
-            console.log('Saving settings:', newSettings);
+        mutationFn: async (formData: Record<string, any>) => {
+            console.log('Saving settings:', formData);
             const response = await fetch(`${window.orgManagerData.apiUrl}/discord/settings`, {
                 method: 'POST',
                 headers: {
                     'X-WP-Nonce': window.orgManagerData.nonce,
                     'Content-Type': 'application/json'
                 },
-                body: JSON.stringify(newSettings)
+                body: JSON.stringify(formData)
             });
             console.log('Save response status:', response.status);
             const data = await response.json();
@@ -56,13 +58,15 @@ export const DiscordSettings: React.FC = () => {
             }
             return data;
         },
-        onSuccess: () => {
+        onSuccess: (data) => {
+            console.log('Settings saved successfully:', data);
             setAlertType('success');
             setAlertMessage('Settings saved successfully');
             setShowAlert(true);
             setTimeout(() => setShowAlert(false), 3000);
         },
         onError: (error: Error) => {
+            console.error('Error saving settings:', error);
             setAlertType('error');
             setAlertMessage(error.message);
             setShowAlert(true);
@@ -73,7 +77,7 @@ export const DiscordSettings: React.FC = () => {
         return <div>Loading...</div>;
     }
 
-    const defaultRedirectUri = `${window.location.origin}/wp-json/org-manager/v1/discord/auth`;
+    console.log('Current settings:', settings);
 
     return (
         <div style={{ padding: theme.spacing.large }}>
@@ -84,61 +88,15 @@ export const DiscordSettings: React.FC = () => {
                         {alertMessage}
                     </Alert>
                 )}
-                <form onSubmit={(e) => {
-                    e.preventDefault();
-                    const formData = new FormData(e.currentTarget);
-                    saveSettings({
-                        client_id: formData.get('client_id') as string,
-                        client_secret: formData.get('client_secret') as string,
-                        redirect_uri: formData.get('redirect_uri') as string || defaultRedirectUri,
-                        registration_enabled: formData.get('registration_enabled') === 'true',
-                        allowed_roles: []
-                    });
-                }}>
-                    <div style={{ marginBottom: theme.spacing.medium }}>
-                        <Input
-                            label="Client ID"
-                            name="client_id"
-                            defaultValue={settings?.client_id}
-                            required
-                        />
-                    </div>
-                    <div style={{ marginBottom: theme.spacing.medium }}>
-                        <Input
-                            label="Client Secret"
-                            name="client_secret"
-                            type="password"
-                            defaultValue={settings?.client_secret}
-                            required
-                        />
-                    </div>
-                    <div style={{ marginBottom: theme.spacing.medium }}>
-                        <Input
-                            label="Redirect URI"
-                            name="redirect_uri"
-                            defaultValue={settings?.redirect_uri || defaultRedirectUri}
-                            placeholder={defaultRedirectUri}
-                            required
-                        />
-                        <p style={{ 
-                            fontSize: '0.8em', 
-                            color: theme.colors.text,
-                            marginTop: '4px' 
-                        }}>
-                            Add this URL to your Discord application's OAuth2 redirect URLs
-                        </p>
-                    </div>
-                    <div style={{ marginBottom: theme.spacing.medium }}>
-                        <Switch
-                            label="Enable Registration"
-                            name="registration_enabled"
-                            defaultChecked={settings?.registration_enabled}
-                        />
-                    </div>
-                    <Button type="submit" disabled={isSaving}>
-                        {isSaving ? 'Saving...' : 'Save Settings'}
-                    </Button>
-                </form>
+                <DynamicForm
+                    fields={settings?.fields ?? []}
+                    onSubmit={(data) => {
+                        console.log('Form submitted with data:', data);
+                        saveSettings(data);
+                    }}
+                    isLoading={isSaving}
+                    initialValues={settings}
+                />
             </Card>
         </div>
     );

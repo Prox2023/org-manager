@@ -74,34 +74,68 @@ class GeneratorCommand extends WP_CLI_Command {
     }
 
     private function generate_feature(): void {
-        $id = \cli\prompt('Feature ID (e.g., discord-auth)');
-        $name = \cli\prompt('Feature Name (e.g., Discord Authentication)');
-        $description = \cli\prompt('Feature Description');
-        $tags = \cli\prompt('Feature Tags (comma-separated)');
-        
-        $has_settings = \cli\confirm('Does this feature have settings?', true);
-        $has_admin_page = \cli\confirm('Does this feature need an admin page?', true);
-        
-        $namespace = \cli\prompt('Feature Namespace (e.g., Discord)', 'Core');
-        
+        $feature_id = WP_CLI\Prompt::get('Feature ID');
+        $feature_name = WP_CLI\Prompt::get('Feature Name');
+        $feature_description = WP_CLI\Prompt::get('Feature Description');
+        $feature_tags = WP_CLI\Prompt::get('Feature Tags (comma-separated)');
+        $has_settings = WP_CLI\Prompt::confirm('Does this feature have settings?');
+        $has_admin_page = WP_CLI\Prompt::confirm('Does this feature need an admin page?');
+        $namespace = WP_CLI\Prompt::get('Feature Namespace');
+
+        $fields = [];
+        if ($has_settings) {
+            while (WP_CLI\Prompt::confirm('Add Field?', true)) {
+                $field_type = WP_CLI\Prompt::get(
+                    'Field Type',
+                    ['text', 'password', 'checkbox', 'select', 'textarea', 'switch', 'number', 'url']
+                );
+                
+                $field_name = WP_CLI\Prompt::get('Field Name');
+                $field_label = WP_CLI\Prompt::get('Field Label');
+                $field_description = WP_CLI\Prompt::get('Field Description');
+                $default_value = WP_CLI\Prompt::get('Default Value', ['optional' => true]);
+
+                $options = [];
+                if ($field_type === 'select') {
+                    $options_string = WP_CLI\Prompt::get('Options (comma-separated key:value pairs)');
+                    $pairs = explode(',', $options_string);
+                    foreach ($pairs as $pair) {
+                        list($key, $value) = explode(':', trim($pair));
+                        $options[trim($key)] = trim($value);
+                    }
+                }
+
+                $fields[] = [
+                    'type' => $field_type,
+                    'name' => $field_name,
+                    'label' => $field_label,
+                    'description' => $field_description,
+                    'default' => $default_value,
+                    'options' => $options
+                ];
+            }
+        }
+
+        // Generate the feature code with fields
+        $feature_code = $this->generate_feature_code(
+            $feature_id,
+            $feature_name,
+            $feature_description,
+            $feature_tags,
+            $has_settings,
+            $has_admin_page,
+            $namespace,
+            $fields
+        );
+
         $feature_dir = $this->base_path . 'includes/Features/' . $namespace;
         if (!is_dir($feature_dir)) {
             mkdir($feature_dir, 0755, true);
         }
 
-        $feature_path = $feature_dir . '/' . $this->pascal_case($id) . 'Feature.php';
+        $feature_path = $feature_dir . '/' . $this->pascal_case($feature_id) . 'Feature.php';
         
-        $content = $this->get_feature_template(
-            $id,
-            $name,
-            $description,
-            $tags,
-            $namespace,
-            $has_settings,
-            $has_admin_page
-        );
-        
-        if (file_put_contents($feature_path, $content)) {
+        if (file_put_contents($feature_path, $feature_code)) {
             WP_CLI::success("Feature created at: $feature_path");
             
             if ($has_settings) {
@@ -115,47 +149,33 @@ class GeneratorCommand extends WP_CLI_Command {
         }
     }
 
-    private function get_epic_template(string $id, string $name, string $tag): string {
-        return <<<PHP
-<?php
-
-namespace OrgManager\Epics;
-
-use OrgManager\Features\Epic;
-
-class {$this->pascal_case($id)}Epic extends Epic {
-    public function __construct() {
-        parent::__construct(
-            '$id',
-            '$name',
-            '$tag'
-        );
-
-        // Add your features here
-        // \$this->add_feature(new SomeFeature());
-    }
-}
-
-PHP;
-    }
-
-    private function get_feature_template(
+    private function generate_feature_code(
         string $id,
         string $name,
         string $description,
         string $tags,
-        string $namespace,
         bool $has_settings,
-        bool $has_admin_page
+        bool $has_admin_page,
+        string $namespace,
+        array $fields = []
     ): string {
-        $tags_array = array_map('trim', explode(',', $tags));
-        $tags_php = "['" . implode("', '", $tags_array) . "']";
-        
         $implements = [];
         if ($has_settings) $implements[] = 'HasSettings';
         if ($has_admin_page) $implements[] = 'HasAdminPage';
+
+        $fields_code = '';
+        if (!empty($fields)) {
+            $fields_code = "\n    private function init_fields(): void {\n";
+            $fields_code .= "        \$this->fields = [\n";
+            foreach ($fields as $field) {
+                $fields_code .= $this->generate_field_code($field);
+            }
+            $fields_code .= "        ];\n    }";
+        }
+
+        $tags_array = array_map('trim', explode(',', $tags));
+        $tags_php = "['" . implode("', '", $tags_array) . "']";
         
-        $implements_string = $implements ? ' implements ' . implode(', ', $implements) : '';
         $use_statements = [];
         
         if ($has_settings) {
@@ -253,6 +273,25 @@ PHP;
 
         $template .= "}\n";
         return $template;
+    }
+
+    private function generate_field_code(array $field): string {
+        $default = $field['default'] !== '' ? ", {$field['default']}" : '';
+        $options = !empty($field['options']) ? ", " . var_export($field['options'], true) : '';
+
+        return <<<PHP
+            new SettingField(
+                Field::TYPE_{$this->get_field_constant($field['type'])},
+                '{$field['name']}',
+                '{$field['label']}',
+                '{$field['description']}'{$default}{$options}
+            ),
+
+PHP;
+    }
+
+    private function get_field_constant(string $type): string {
+        return strtoupper($type);
     }
 
     private function pascal_case(string $string): string {
