@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Admin\RoleController;
 use App\Http\Controllers\Admin\UserController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
@@ -14,6 +15,7 @@ Route::middleware( [ 'auth', 'verified' ] )->group( function () {
     } )->name( 'dashboard' );
     Route::prefix('admin')->group( function () {
         Route::resource( 'users', UserController::class );
+        Route::resource( 'roles', RoleController::class );
     } );
 
 } );
