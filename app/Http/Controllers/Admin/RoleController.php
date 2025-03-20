@@ -8,6 +8,7 @@ use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
 use Spatie\Permission\Models\Role;
+use Spatie\Permission\Models\Permission;
 
 class RoleController extends Controller
 {
@@ -20,4 +21,18 @@ class RoleController extends Controller
             'roles' => Role::with('permissions')->get(),
         ]);
     }
+
+    /**
+     * Show the role with the specified resource.
+     */
+    public function show(Role $role): Response
+    {
+        $role->load('permissions');
+        
+        return Inertia::render('Admin/Roles/Show', [
+            'role' => $role,
+            'availablePermissions' => Permission::all(),
+        ]);
+    }
+
 }
