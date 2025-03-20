@@ -5,7 +5,8 @@ import { User } from '@/types';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
-import { MapPin, Users, Trophy, UserCog, MessageSquare } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { MapPin, Users, Trophy, UserCog, MessageSquare, Shield, Key, Lock, KeyRound } from "lucide-react";
 
 /*
     * This is the main component of the page.
@@ -60,6 +61,70 @@ export default function Show({ user }: { user: User }) {
                                                 {role.name}
                                             </Badge>
                                         ))}
+                                    </div>
+                                </div>
+                            </div>
+                        </CardContent>
+                    </Card>
+
+                    {/* Security Section */}
+                    <Card>
+                        <CardHeader>
+                            <CardTitle className="flex items-center gap-2">
+                                <Shield className="h-5 w-5" />
+                                Security Settings
+                            </CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                            <div className="space-y-6">
+                                {/* Password Reset */}
+                                <div className="flex items-center justify-between">
+                                    <div className="space-y-1">
+                                        <div className="flex items-center gap-2">
+                                            <Key className="h-4 w-4 text-muted-foreground" />
+                                            <h3 className="font-medium">Password Reset</h3>
+                                        </div>
+                                        <p className="text-sm text-muted-foreground">
+                                            Force a password reset for this user
+                                        </p>
+                                    </div>
+                                    <Button variant="outline" size="sm">
+                                        Reset Password
+                                    </Button>
+                                </div>
+
+                                {/* Two Factor Authentication */}
+                                <div className="flex items-center justify-between">
+                                    <div className="space-y-1">
+                                        <div className="flex items-center gap-2">
+                                            <Lock className="h-4 w-4 text-muted-foreground" />
+                                            <h3 className="font-medium">Two Factor Authentication</h3>
+                                        </div>
+                                        <p className="text-sm text-muted-foreground">
+                                            Reset 2FA for this user
+                                        </p>
+                                    </div>
+                                    <Button variant="outline" size="sm">
+                                        Reset 2FA
+                                    </Button>
+                                </div>
+
+                                {/* 2FA Provider */}
+                                <div className="flex items-center justify-between">
+                                    <div className="space-y-1">
+                                        <div className="flex items-center gap-2">
+                                            <KeyRound className="h-4 w-4 text-muted-foreground" />
+                                            <h3 className="font-medium">2FA Provider</h3>
+                                        </div>
+                                        <p className="text-sm text-muted-foreground">
+                                            Configured: Google Authenticator
+                                        </p>
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                        <Badge variant="secondary">Configured</Badge>
+                                        <Button variant="outline" size="sm">
+                                            Change Provider
+                                        </Button>
                                     </div>
                                 </div>
                             </div>
