@@ -14,7 +14,7 @@ const mainNavItems: NavItem[] = [
         icon: LayoutGrid,
     },
     {
-        title: 'Users, Roles & Ranks',
+        title: 'Users and Roles',
         href: '#',
         icon: GroupIcon,
         items: [
@@ -28,10 +28,6 @@ const mainNavItems: NavItem[] = [
                 href: '/admin/roles',
                 icon: VaultIcon
             },
-        //     {
-        //         title: 'Rank Management',
-        //         href: '/ranks',
-        //     }
         ],
     }
 ];
