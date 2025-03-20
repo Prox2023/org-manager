@@ -17,9 +17,9 @@ export function Breadcrumbs({ breadcrumbs }: { breadcrumbs: BreadcrumbItemType[]
                                         {isLast ? (
                                             <BreadcrumbPage>{item.title}</BreadcrumbPage>
                                         ) : (
-                                            <BreadcrumbLink asChild>
-                                                <Link href={item.href}>{item.title}</Link>
-                                            </BreadcrumbLink>
+                                            <Link href={item.href} className="hover:text-foreground transition-colors">
+                                                {item.title}
+                                            </Link>
                                         )}
                                     </BreadcrumbItem>
                                     {!isLast && <BreadcrumbSeparator />}

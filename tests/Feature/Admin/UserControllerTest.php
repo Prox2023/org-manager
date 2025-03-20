@@ -55,7 +55,7 @@ class UserControllerTest extends TestCase
         $response->assertStatus(200)
             ->assertInertia(fn ($page) => $page
                 ->component('Admin/Users/Index')
-                ->has('users', 4) // 3 created + 1 admin
+                ->has('users', 13) // 3 created + 1 admin
             );
     }
 

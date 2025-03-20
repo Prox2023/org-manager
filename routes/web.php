@@ -2,6 +2,7 @@
 
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
+use App\Http\Controllers\Admin\RoleController;
 
 /*
 |--------------------------------------------------------------------------
@@ -23,6 +24,13 @@ Route::middleware( [ 'auth', 'verified' ] )->group( function () {
         return Inertia::render( 'dashboard' );
     } )->name( 'dashboard' );
 } );
+
+Route::middleware(['auth'])->prefix('admin')->name('admin.')->group(function () {
+    Route::resource('users', \App\Http\Controllers\Admin\UserController::class);
+    Route::resource('roles', \App\Http\Controllers\Admin\RoleController::class);
+    Route::post('roles/{role}/permissions/{permission}/toggle', [\App\Http\Controllers\Admin\RoleController::class, 'togglePermission'])
+        ->name('roles.permissions.toggle');
+});
 
 require __DIR__ . '/settings.php';
 require __DIR__ . '/auth.php';

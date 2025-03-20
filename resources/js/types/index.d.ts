@@ -56,7 +56,7 @@ export interface User {
     created_at: string;
     updated_at: string;
     organization?: Organization;
-    team?: Team;
+    current_team?: Team;
     [key: string]: unknown; // This allows for additional properties...
 }
 

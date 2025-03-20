@@ -10,7 +10,27 @@ export function NavMain({ items = [] }: { items: NavItem[] }) {
 
     // Function to check if a URL matches a pattern (for nested routes)
     const isUrlActive = (url: string) => {
-        return page.url.startsWith(url);
+        // Remove query parameters and trailing slashes for comparison
+        const currentPath = page.url.split('?')[0].replace(/\/$/, '');
+        const targetPath = url.split('?')[0].replace(/\/$/, '');
+        
+        // Extract just the path from the current URL (remove domain)
+        const currentPathOnly = currentPath.replace(/^https?:\/\/[^/]+/, '');
+        
+        // If the target path is just a hash (#), it's a parent menu item
+        if (targetPath === '#') return false;
+        
+        // Split paths into segments
+        const currentSegments = currentPathOnly.split('/').filter(Boolean);
+        const targetSegments = targetPath.split('/').filter(Boolean);
+        
+        // For index routes, we want to match the base path
+        if (targetSegments[targetSegments.length - 1] === 'index') {
+            targetSegments.pop();
+        }
+        
+        // Compare segments up to the length of the target path
+        return targetSegments.every((segment, index) => currentSegments[index] === segment);
     };
 
     // Function to check if any child items are active

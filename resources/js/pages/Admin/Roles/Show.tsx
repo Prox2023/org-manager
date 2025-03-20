@@ -1,161 +1,164 @@
+import { Head, router } from "@inertiajs/react";
+import { PageHeader } from "@/components/page-header";
+import { SectionCard } from "@/components/section-card";
+import { PermissionsTable } from "@/components/permissions-table";
+import { Role, Permission } from "@/types";
+import { Shield, Key, Users, Search } from "lucide-react";
 import AppLayout from '@/layouts/app-layout';
 import { type BreadcrumbItem } from '@/types';
-import { Head } from '@inertiajs/react';
-import { Role, Permission } from '@/types';
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import {
-    Table,
-    TableBody,
-    TableCell,
-    TableHead,
-    TableHeader,
-    TableRow,
-} from "@/components/ui/table";
-import { Shield, Key, Plus, Trash2, CheckCircle2, XCircle } from "lucide-react";
-import { useState } from 'react';
+import { Input } from "@/components/ui/input";
+import { useDebounce } from "@/hooks/use-debounce";
+import { useEffect, useState } from "react";
 
 interface Props {
     role: Role;
-    availablePermissions: Permission[];
+    permissions: {
+        data: Permission[];
+        current_page: number;
+        last_page: number;
+        total: number;
+        per_page: number;
+    };
+    filters: {
+        search?: string;
+    };
 }
 
-export default function Show({ role, availablePermissions = [] }: Props) {
-    const [selectedPermissions, setSelectedPermissions] = useState<Permission[]>(
-        role.permissions || []
-    );
+export default function Show({ role, permissions, filters }: Props) {
+    const [search, setSearch] = useState(filters.search || '');
+    const debouncedSearch = useDebounce(search, 300);
+
+    useEffect(() => {
+        router.get(
+            route('admin.roles.show', role.id),
+            { search: debouncedSearch },
+            {
+                preserveState: true,
+                preserveScroll: true,
+            }
+        );
+    }, [debouncedSearch]);
+
+    const handleTogglePermission = (permission: Permission) => {
+        router.post(route('admin.roles.permissions.toggle', {
+            role: role.id,
+            permission: permission.id
+        }), {
+            search: debouncedSearch
+        }, {
+            preserveState: true,
+            preserveScroll: true,
+            onSuccess: () => {
+                console.log('Permission toggled successfully');
+            },
+            onError: (errors) => {
+                console.error('Error toggling permission:', errors);
+            }
+        });
+    };
+
+    const handleAddPermission = () => {
+        // TODO: Implement add permission logic
+        console.log("Add permission");
+    };
+
+    const handlePageChange = (page: number) => {
+        router.get(
+            route('admin.roles.show', role.id),
+            { 
+                search: debouncedSearch,
+                page 
+            },
+            {
+                preserveState: true,
+                preserveScroll: true,
+            }
+        );
+    };
 
     const breadcrumbs: BreadcrumbItem[] = [
         {
             title: 'Role Management',
-            href: '/admin/roles',
+            href: route('admin.roles.index'),
             children: {
                 title: 'Role Info',
-                href: '/admin/roles',
+                href: route('admin.roles.index'),
                 children: {
                     title: role.name,
-                    href: `/admin/roles/${role.id}`,
+                    href: route('admin.roles.show', role.id),
                 }
             }
         },
     ];
 
-    const handlePermissionToggle = (permission: Permission) => {
-        setSelectedPermissions(prev => {
-            const exists = prev.some(p => p.id === permission.id);
-            if (exists) {
-                return prev.filter(p => p.id !== permission.id);
-            }
-            return [...prev, permission];
-        });
-    };
-
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
-            <Head title={`${role.name} Role`} />
-            <div className="container mx-auto px-4 py-8 max-w-7xl">
-                <div className="space-y-6">
-                    {/* Role Information */}
-                    <Card>
-                        <CardHeader>
-                            <CardTitle className="flex items-center gap-2">
-                                <Shield className="h-5 w-5" />
-                                Role Information
-                            </CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                            <div className="space-y-4">
-                                <div className="flex items-center justify-between">
-                                    <div className="space-y-1">
-                                        <h2 className="text-2xl font-bold">{role.name}</h2>
-                                        <p className="text-muted-foreground">Guard: {role.guard_name}</p>
-                                    </div>
-                                    <div className="flex items-center gap-2">
-                                        <Badge variant="secondary">
-                                            {selectedPermissions.length} Permissions
-                                        </Badge>
-                                    </div>
-                                </div>
-                            </div>
-                        </CardContent>
-                    </Card>
+            <Head title={`Role: ${role.name}`} />
 
-                    {/* Permissions Table */}
-                    <Card>
-                        <CardHeader>
-                            <div className="flex items-center justify-between">
-                                <CardTitle className="flex items-center gap-2">
-                                    <Key className="h-5 w-5" />
-                                    Permissions
-                                </CardTitle>
-                                <Button size="sm" className="flex items-center gap-2">
-                                    <Plus className="h-4 w-4" />
-                                    Add Permission
-                                </Button>
-                            </div>
-                        </CardHeader>
-                        <CardContent>
-                            {availablePermissions.length === 0 ? (
-                                <div className="text-center py-4 text-muted-foreground">
-                                    No permissions available
+            <div className="py-12">
+                <div className="max-w-7xl mx-auto sm:px-6 lg:px-8">
+                    <PageHeader
+                        title={role.name}
+                        description={`Manage permissions for the ${role.name} role`}
+                        icon={Shield}
+                        count={role.permissions?.length || 0}
+                    />
+
+                    <div className="mt-8 space-y-6">
+                        <SectionCard
+                            title="Role Information"
+                            icon={Users}
+                            className="bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-950/50 dark:to-indigo-950/50"
+                        >
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div>
+                                    <h3 className="text-sm font-medium text-muted-foreground">Name</h3>
+                                    <p className="mt-1 text-sm">{role.name}</p>
                                 </div>
-                            ) : (
-                                <Table>
-                                    <TableHeader>
-                                        <TableRow>
-                                            <TableHead>Permission Name</TableHead>
-                                            <TableHead>Guard</TableHead>
-                                            <TableHead>Status</TableHead>
-                                            <TableHead className="text-right">Actions</TableHead>
-                                        </TableRow>
-                                    </TableHeader>
-                                    <TableBody>
-                                        {availablePermissions.map((permission) => {
-                                            const isSelected = selectedPermissions.some(
-                                                p => p.id === permission.id
-                                            );
-                                            return (
-                                                <TableRow key={permission.id}>
-                                                    <TableCell className="font-medium">
-                                                        {permission.name}
-                                                    </TableCell>
-                                                    <TableCell>{permission.guard_name}</TableCell>
-                                                    <TableCell>
-                                                        {isSelected ? (
-                                                            <Badge variant="default" className="flex items-center gap-1">
-                                                                <CheckCircle2 className="h-3 w-3" />
-                                                                Assigned
-                                                            </Badge>
-                                                        ) : (
-                                                            <Badge variant="secondary" className="flex items-center gap-1">
-                                                                <XCircle className="h-3 w-3" />
-                                                                Not Assigned
-                                                            </Badge>
-                                                        )}
-                                                    </TableCell>
-                                                    <TableCell className="text-right">
-                                                        <Button
-                                                            variant="ghost"
-                                                            size="sm"
-                                                            onClick={() => handlePermissionToggle(permission)}
-                                                            className={isSelected ? "text-destructive" : ""}
-                                                        >
-                                                            {isSelected ? (
-                                                                <Trash2 className="h-4 w-4" />
-                                                            ) : (
-                                                                <Plus className="h-4 w-4" />
-                                                            )}
-                                                        </Button>
-                                                    </TableCell>
-                                                </TableRow>
-                                            );
-                                        })}
-                                    </TableBody>
-                                </Table>
-                            )}
-                        </CardContent>
-                    </Card>
+                                <div>
+                                    <h3 className="text-sm font-medium text-muted-foreground">Guard</h3>
+                                    <p className="mt-1 text-sm">{role.guard_name}</p>
+                                </div>
+                                <div>
+                                    <h3 className="text-sm font-medium text-muted-foreground">Created At</h3>
+                                    <p className="mt-1 text-sm">{role.created_at}</p>
+                                </div>
+                                <div>
+                                    <h3 className="text-sm font-medium text-muted-foreground">Updated At</h3>
+                                    <p className="mt-1 text-sm">{role.updated_at}</p>
+                                </div>
+                            </div>
+                        </SectionCard>
+
+                        <SectionCard
+                            title="Permissions"
+                            icon={Key}
+                            className="bg-gradient-to-br from-purple-50 to-pink-50 dark:from-purple-950/50 dark:to-pink-950/50"
+                        >
+                            <div className="mb-4">
+                                <div className="relative">
+                                    <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+                                    <Input
+                                        placeholder="Search permissions..."
+                                        value={search}
+                                        onChange={(e) => setSearch(e.target.value)}
+                                        className="pl-8"
+                                    />
+                                </div>
+                            </div>
+                            <PermissionsTable
+                                permissions={permissions.data}
+                                selectedPermissions={role.permissions || []}
+                                onTogglePermission={handleTogglePermission}
+                                onAddPermission={handleAddPermission}
+                                currentPage={permissions.current_page}
+                                lastPage={permissions.last_page}
+                                total={permissions.total}
+                                perPage={permissions.per_page}
+                                onPageChange={handlePageChange}
+                            />
+                        </SectionCard>
+                    </div>
                 </div>
             </div>
         </AppLayout>

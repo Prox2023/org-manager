@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Link } from "@inertiajs/react";
 import { LucideIcon, Plus } from "lucide-react";
+import { type ReactNode } from "react";
 
 interface PageHeaderProps {
     title: string;
@@ -11,6 +12,7 @@ interface PageHeaderProps {
     count: number;
     createRoute?: string;
     createLabel?: string;
+    action?: ReactNode;
 }
 
 export function PageHeader({
@@ -20,6 +22,7 @@ export function PageHeader({
     count,
     createRoute,
     createLabel = "Add New",
+    action,
 }: PageHeaderProps) {
     return (
         <Card>
@@ -29,14 +32,14 @@ export function PageHeader({
                         <Icon className="h-5 w-5" />
                         {title}
                     </CardTitle>
-                    {createRoute && (
+                    {action || (createRoute && (
                         <Button className="flex items-center gap-2" asChild>
                             <Link href={createRoute}>
                                 <Plus className="h-4 w-4" />
                                 {createLabel}
                             </Link>
                         </Button>
-                    )}
+                    ))}
                 </div>
             </CardHeader>
             <CardContent>

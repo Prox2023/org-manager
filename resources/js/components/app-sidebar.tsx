@@ -10,7 +10,7 @@ import AppLogo from './app-logo';
 const mainNavItems: NavItem[] = [
     {
         title: 'Dashboard',
-        href: '/dashboard',
+        href: route('dashboard'),
         icon: LayoutGrid,
     },
     {
@@ -20,12 +20,12 @@ const mainNavItems: NavItem[] = [
         items: [
             {
                 title: 'Users Management',
-                href: '/admin/users',
+                href: route('admin.users.index'),
                 icon: UsersIcon
             },
             {
                 title: 'Roles Management',
-                href: '/admin/roles',
+                href: route('admin.roles.index'),
                 icon: VaultIcon
             },
         ],

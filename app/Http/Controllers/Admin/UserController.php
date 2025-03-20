@@ -16,10 +16,40 @@ class UserController extends Controller
     /**
      * Display a listing of the resource.
      */
-    public function index(): Response
+    public function index(Request $request): Response
     {
+        $query = User::with(['organization', 'currentTeam']);
+
+        // Handle search
+        if ($request->has('search')) {
+            $search = $request->input('search');
+            $query->where('name', 'like', "%{$search}%")
+                  ->orWhere('email', 'like', "%{$search}%");
+        }
+
+        // Handle sorting
+        $sortField = $request->input('sort_field', 'name');
+        $sortDirection = $request->input('sort_direction', 'asc');
+        
+        // Validate sort field to prevent SQL injection
+        $allowedSortFields = ['name', 'email', 'created_at', 'updated_at'];
+        if (!in_array($sortField, $allowedSortFields)) {
+            $sortField = 'name';
+        }
+        
+        $query->orderBy($sortField, $sortDirection);
+
+        // Get paginated users
+        $users = $query->paginate(10)
+            ->withQueryString();
+
         return Inertia::render('Admin/Users/Index', [
-            'users' => User::all(),
+            'users' => $users,
+            'filters' => $request->only(['search']),
+            'sort' => [
+                'field' => $sortField,
+                'direction' => $sortDirection,
+            ],
         ]);
     }
 
